@@ -115,7 +115,7 @@ SELECT id, first_name FROM sample_table WHERE first_name = "Ben";
 ```
 would _not_ need to perform the second lookup against the clustered index because all the date requested would be returned from the first index lookup. In these cases, the secondary index is a **covering index** for the query, and it much preferable and quicker, since it is generally half the work.
 
-To test this out you can run the `covering_index.rb` benchmark script. When I ran this against 100,000 records it gave following results which showed the covering index to be almost twice as fast than without the covering index.
+To test this out you can run the [`covering_index.rb`](lib/covering_index.rb) benchmark script. When I ran this against 100,000 records it gave following results which showed the covering index to be almost twice as fast than without the covering index.
 
 ```
 # ruby lib/covering_index.rb
