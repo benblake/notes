@@ -115,7 +115,7 @@ SELECT id, first_name FROM sample_table WHERE first_name = "Ben";
 ```
 would _not_ need to perform the second lookup against the clustered index because all the date requested would be returned from the first index lookup. In these cases, the secondary index is a **covering index** for the query, and it much preferable and quicker, since it is generally half the work.
 
-To test this out you can run the [`covering_index.rb`](lib/covering_index.rb) benchmark script. When I ran this against 100,000 records it gave following results which showed the covering index to be almost twice as fast than without the covering index.
+To test this out you can run the [`covering_index.rb`](lib/covering_index.rb) benchmark script. When I ran this against 100,000 records it gave following results, which showed the covering index to be almost twice as fast than without the covering index.
 
 ```
 # ruby lib/covering_index.rb
@@ -132,9 +132,59 @@ Comparison:
  with covering index:     1071.6 i/s
 without covering index:      557.3 i/s - 1.92x  (± 0.00) slower
 ```
+
+You can also tell if a query uses a covering index from `EXPLAIN`. The `Extra` for a query with a covering index will say `Using index`, where a non-covering query will say `Using where`.
+
+Covering indexes can be especially important to think about when doing pagination. If you have a query on a column with low cardinality (ie. many results are present) with a large offset, then MySQL has to load all the data requested just to throw it away. For example, consider the table:
+```sql
+CREATE TABLE sample_table (
+  id bigint(20) NOT NULL AUTO_INCREMENT,
+  first_name varchar(255) DEFAULT NULL,
+  last_name varchar(255) DEFAULT NULL,
+  sex varchar(1) NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_sex (sex)
+)
+```
+and the query
+```sql
+SELECT * FROM sample_table
+WHERE sex = "M"
+ORDER BY id DESC
+LIMIT 100000, 100;
+```
+Here the query will potentially have to do an secondary index lookup and a clustered index lookup on 100000 records just to throw them away. This can be greatly sped up by doing the pagination portion of the query only against the secondary (covering) index, and then loading the all the rows of only the records you need. This strategy is called a **deferred join**, and the query can be optimized as
+```sql
+SELECT * FROM sample_table INNER JOIN (
+  SELECT id, sex FROM sample_table
+  WHERE sex = "M"
+  ORDER BY id DESC
+  LIMIT 100000, 100;
+) AS x USING(id);
+```
+
+To test this out you can run the [`covering_index_pagination.rb`](lib/covering_index_pagination.rb) benchmark script. When I ran this against 100,000 records with about 50/50 male/female it gave following results, which showed the deferred join approach to be almost 4X faster than the standard query. However, not that both of these queries are pretty slow because the sort order is not in the column order of the index.
+
+```
+# ruby lib/covering_index_pagination.rb
+Warming up --------------------------------------
+  with deferred join     5.000  i/100ms
+without deferred join
+                         1.000  i/100ms
+Calculating -------------------------------------
+  with deferred join     55.364  (± 7.2%) i/s -    280.000  in   5.082580s
+without deferred join
+                         15.207  (± 6.6%) i/s -     76.000  in   5.006119s
+
+Comparison:
+  with deferred join:       55.4 i/s
+without deferred join:       15.2 i/s - 3.64x  (± 0.00) slower
+```
+
+</details>
+
 <!-- ## Query optimization -->
 <!-- ## Using `EXPLAIN` -->
 <!-- ## Transactions -->
 <!-- ## Locks -->
 <!-- <br /> -->
-</details>
