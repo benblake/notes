@@ -279,6 +279,9 @@ services:
 </details>
 
 ## Some production concerns
+<details>
+<summary>Click to expand</summary>
+
 When we run `npm run start` this spins up a _development_ web server to connect to through localhost. When we run `npm run build` that will basically just compile a production appropriate set of assets that need to be served up by a _production_ web server - this is not included. Here we will use Nginx as our production web server.
 
 We will create a separate Dockerfile to create a production version of our web container. There are two weird issues with creating a straight forward Dockerfile for prodution
@@ -303,8 +306,12 @@ COPY --from=builder /app/build /usr/share/nginx/html
 ```
 
 Note there is no `CMD` instruction on the nginx block - this is because there is a default command in the nginx image that will be used.
+</details>
 
 ## Environment variables
+<details>
+<summary>Click to expand</summary>
+
 Environment variables are common for secrets, for example db connection passwords. Environment variables can be set in your `docker-compose.yml` file. They can either be explicitly set, or defined and have their value pulled from your machine's environment variable. Note they are available in the container at _run time_ - the image building process does not get access to the environment variables.
 
 <img src="./images/007_environment_variables.png" width="500" />
@@ -335,14 +342,21 @@ services:
       - PGPASSWORD=postgres_password
       - PGPORT=5432
 ```
+</details>
 
 ## Examples
+<details>
+<summary>Click to expand</summary>
+
 Some example apps are in this repo to be used for reference.
 
 ### Simple Node/Redis webapp
 The [visits](./visits) app contains an example of a simple Docker compose project. It is a Node webapp that tracks visits and stores the count in Redis. It is two containers with very simple configurations.
+</details>
 
 ## Common commands
+<details>
+<summary>Click to expand</summary>
 
 ### Docker
 - `$ docker run <image-name>`
@@ -380,8 +394,11 @@ The [visits](./visits) app contains an example of a simple Docker compose projec
   - Shows all running containers in the pwd.
 - `$ docker-compose down`
   - Stops the containers.
+</details>
 
 ## Common Dockerfile configs
+<details>
+<summary>Click to expand</summary>
 
 ### Docker
 - `FROM`: used to tell Docker which image to use as a base.
@@ -420,3 +437,4 @@ The [visits](./visits) app contains an example of a simple Docker compose projec
   command: ["npm", "run", "start"]`
   ```
 - `restart`: restart policy to use when the service crashes. Options are `"no"`, `always`, `on-failure`, or `unless-stopped`.
+</details>
